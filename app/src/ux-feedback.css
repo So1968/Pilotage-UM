@@ -1,0 +1,318 @@
+/* V25 — Retours utilisatrice : sélection visible, couleurs par zones, champs cliquables repérables.
+   Objectif : aider sur PC et Samsung Galaxy Z Fold sans modifier la logique métier. */
+
+:root {
+  --ux-focus: #3f7f68;
+  --ux-focus-soft: rgba(63, 127, 104, 0.2);
+  --ux-hover: rgba(63, 127, 104, 0.08);
+  --ux-selected: #dcefe6;
+  --ux-selected-border: #70a98f;
+  --ux-zone-situation: #e2f0e7;
+  --ux-zone-situation-border: #92b99f;
+  --ux-zone-dates: #f5ead2;
+  --ux-zone-dates-border: #d5ab63;
+  --ux-zone-trajet: #e3edf6;
+  --ux-zone-trajet-border: #7fa9c9;
+  --ux-zone-relais: #efe5f2;
+  --ux-zone-relais-border: #b991c3;
+  --ux-zone-impact: #f4e4df;
+  --ux-zone-impact-border: #ce9889;
+}
+
+/* 1) Tout ce qui est cliquable doit réagir visuellement */
+button,
+summary,
+label,
+select,
+input,
+textarea,
+.choixObjectif,
+.resumeSituation,
+.resumeAttribution,
+.resumeEquipe,
+.resumeCharge,
+.resumeGestionEquipe,
+.boutonMiniPlus,
+.boutonMiniModifier,
+.boutonLienExport,
+.actionsSituation button {
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.12s ease,
+    color 0.16s ease;
+}
+
+button:hover,
+summary:hover,
+.choixObjectif:hover,
+.resumeSituation:hover,
+.resumeAttribution:hover,
+.resumeEquipe:hover,
+.resumeCharge:hover,
+.resumeGestionEquipe:hover,
+.boutonLienExport:hover {
+  box-shadow: 0 0 0 3px var(--ux-hover) !important;
+  transform: translateY(-1px);
+}
+
+button:focus-visible,
+summary:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+.choixObjectif:focus-within {
+  outline: 3px solid var(--ux-focus-soft) !important;
+  outline-offset: 2px !important;
+  border-color: var(--ux-focus) !important;
+  box-shadow: 0 0 0 4px rgba(63, 127, 104, 0.1) !important;
+}
+
+input:hover,
+select:hover,
+textarea:hover,
+.codeLigne:hover {
+  border-color: #8eaa90 !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(113, 133, 111, 0.1) !important;
+}
+
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  min-height: 44px !important;
+}
+
+/* Les champs déjà renseignés deviennent légèrement visibles, pour éviter l’effet “tout pareil”. */
+input:not(:placeholder-shown),
+textarea:not(:placeholder-shown),
+select:has(option:checked:not([value=""])) {
+  background: #fffdf8 !important;
+  border-color: #9fb69e !important;
+  box-shadow: inset 4px 0 0 rgba(111, 143, 126, 0.38) !important;
+}
+
+input[type="date"]:not(:placeholder-shown) {
+  box-shadow: inset 4px 0 0 rgba(213, 171, 99, 0.46) !important;
+}
+
+input[type="checkbox"] {
+  accent-color: var(--ux-focus);
+  cursor: pointer;
+}
+
+label.champ,
+.caseSimple {
+  border-radius: 14px;
+}
+
+label.champ:hover,
+.caseSimple:hover,
+.choixObjectif:hover {
+  background: rgba(255, 255, 255, 0.45) !important;
+}
+
+/* 2) Les grandes zones de la fiche doivent être vraiment différenciées */
+.formulaire > .colonneForm:nth-of-type(1) {
+  background: linear-gradient(180deg, rgba(226, 240, 231, 0.95) 0%, rgba(246, 251, 247, 0.92) 100%) !important;
+  border-color: var(--ux-zone-situation-border) !important;
+  box-shadow: inset 6px 0 0 var(--ux-zone-situation-border), 0 8px 18px rgba(71, 80, 66, 0.05) !important;
+}
+
+.formulaire > .colonneForm:nth-of-type(2) {
+  background: linear-gradient(180deg, rgba(245, 234, 210, 0.96) 0%, rgba(252, 249, 242, 0.94) 100%) !important;
+  border-color: var(--ux-zone-dates-border) !important;
+  box-shadow: inset 6px 0 0 var(--ux-zone-dates-border), 0 8px 18px rgba(71, 80, 66, 0.05) !important;
+}
+
+.formulaire > .colonneForm:nth-of-type(1) > h3,
+.formulaire > .colonneForm:nth-of-type(2) > h3,
+.sousBlocForm > h3,
+.trajetCadre > h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.92rem !important;
+  font-weight: 650 !important;
+}
+
+.formulaire > .colonneForm:nth-of-type(1) > h3 {
+  background: rgba(146, 185, 159, 0.22) !important;
+  color: #376548 !important;
+}
+
+.formulaire > .colonneForm:nth-of-type(2) > h3 {
+  background: rgba(213, 171, 99, 0.22) !important;
+  color: #76551c !important;
+}
+
+.trajetCadre {
+  background: linear-gradient(180deg, rgba(227, 237, 246, 0.98) 0%, rgba(246, 250, 253, 0.95) 100%) !important;
+  border-color: var(--ux-zone-trajet-border) !important;
+  box-shadow: inset 5px 0 0 var(--ux-zone-trajet-border) !important;
+}
+
+.trajetCadre > h3 {
+  background: rgba(127, 169, 201, 0.2) !important;
+  color: #3e647f !important;
+}
+
+.blocImpactCadre {
+  background: linear-gradient(180deg, rgba(244, 228, 223, 0.98) 0%, rgba(253, 248, 246, 0.95) 100%) !important;
+  border-color: var(--ux-zone-impact-border) !important;
+  box-shadow: inset 5px 0 0 var(--ux-zone-impact-border) !important;
+}
+
+.blocImpactCadre > h3 {
+  background: rgba(206, 152, 137, 0.2) !important;
+  color: #7e4e42 !important;
+}
+
+/* Le relais / continuité est souvent dans la colonne dates : on le détache visuellement. */
+.formulaire > .colonneForm:nth-of-type(2) .sousBlocForm,
+.formulaire > .colonneForm:nth-of-type(2) .caseSimple {
+  border-color: var(--ux-zone-relais-border) !important;
+}
+
+.formulaire > .colonneForm:nth-of-type(2) .sousBlocForm {
+  background: linear-gradient(180deg, rgba(239, 229, 242, 0.96) 0%, rgba(252, 247, 253, 0.94) 100%) !important;
+  box-shadow: inset 5px 0 0 var(--ux-zone-relais-border) !important;
+}
+
+/* 3) Outil trajet : sélection structure beaucoup plus visible */
+.carnetStructuresTrajet {
+  border: 1px solid #cadced;
+  background: rgba(255, 255, 255, 0.58);
+  border-radius: 16px;
+  padding: 10px;
+}
+
+.enteteCarnetStructures,
+.actionsDestinationMini {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.enteteCarnetStructures h4 {
+  margin: 0;
+  color: #31566f;
+  font-size: 0.95rem;
+}
+
+.selectionStructureTrajet select {
+  cursor: pointer;
+  border-width: 2px !important;
+  background:
+    linear-gradient(90deg, rgba(127, 169, 201, 0.16), rgba(255, 255, 255, 0.8)),
+    #ffffff !important;
+}
+
+.selectionStructureTrajet select:has(option:checked:not([value=""])) {
+  background:
+    linear-gradient(90deg, rgba(112, 169, 143, 0.26), rgba(255, 255, 255, 0.9)),
+    var(--ux-selected) !important;
+  border-color: var(--ux-selected-border) !important;
+  color: #244f3e !important;
+  font-weight: 650 !important;
+  box-shadow: 0 0 0 4px rgba(112, 169, 143, 0.16), inset 5px 0 0 var(--ux-selected-border) !important;
+}
+
+.selectionStructureTrajet .champ span::after {
+  content: " — le choix devient vert quand il est actif";
+  font-weight: 460;
+  color: #60766c;
+}
+
+.messageTrajetTemp {
+  border-width: 2px !important;
+  font-weight: 560 !important;
+}
+
+.messageTrajetTemp:not(:empty) {
+  background: #e3f2ea !important;
+  border-color: #9fcaad !important;
+  color: #2f6041 !important;
+}
+
+.boutonMiniPlus,
+.boutonMiniModifier {
+  min-width: 34px;
+  min-height: 34px;
+  border-radius: 999px;
+  border: 1px solid #b9cbd8;
+  background: #f8fbfd;
+  color: #31566f;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.boutonMiniPlus:hover,
+.boutonMiniModifier:hover:not(:disabled) {
+  background: #e3edf6 !important;
+  border-color: #7fa9c9 !important;
+  box-shadow: 0 0 0 4px rgba(127, 169, 201, 0.18) !important;
+}
+
+.boutonMiniModifier:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 4) Les cartes ouvertes / sélectionnées ressortent mieux */
+details[open] > summary,
+.carteAttribution.proposee > summary,
+.carteSituationRepliee[open] > summary {
+  background: rgba(227, 239, 231, 0.74) !important;
+  border-bottom-color: #b9cfbd !important;
+}
+
+.carteSituationRepliee[open],
+.carteAttribution[open],
+.carteEquipe[open],
+.carteChargeCompacte[open],
+.blocRepliable[open] {
+  box-shadow: 0 0 0 3px rgba(113, 133, 111, 0.08), 0 10px 22px rgba(71, 80, 66, 0.08) !important;
+}
+
+/* 5) Boutons d’action plus évidents */
+.boutonPrincipal,
+.boutonSecondaire,
+.boutonDanger,
+.boutonLienExport {
+  border-width: 1.5px !important;
+}
+
+.boutonPrincipal:hover,
+.boutonSecondaire:hover,
+.boutonDanger:hover,
+.boutonLienExport:hover {
+  filter: saturate(1.08);
+}
+
+.actionsSituation .boutonSecondaire::before {
+  content: "✎ ";
+}
+
+.actionsSituation .boutonDanger::before {
+  content: "× ";
+}
+
+@media (max-width: 760px) {
+  .selectionStructureTrajet .champ span::after {
+    display: block;
+    margin-top: 2px;
+  }
+
+  .formulaire > .colonneForm:nth-of-type(1),
+  .formulaire > .colonneForm:nth-of-type(2),
+  .trajetCadre,
+  .blocImpactCadre,
+  .formulaire > .colonneForm:nth-of-type(2) .sousBlocForm {
+    box-shadow: inset 4px 0 0 currentColor, 0 8px 18px rgba(71, 80, 66, 0.04) !important;
+  }
+}
