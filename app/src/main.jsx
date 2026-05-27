@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import './ux-feedback.css'
+import './retro-50.css'
 import './referents-extension.js'
 import App from './App.jsx'
 
