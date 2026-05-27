@@ -1,0 +1,7 @@
+input:hover,select:hover,textarea:hover,button:hover,summary:hover{box-shadow:0 0 0 3px rgba(63,127,104,.14)!important}
+input:focus,select:focus,textarea:focus{outline:3px solid rgba(63,127,104,.22)!important;border-color:#3f7f68!important}
+.formulaire>.colonneForm:nth-of-type(1){background:#eef8f1!important;box-shadow:inset 6px 0 0 #92b99f!important}
+.formulaire>.colonneForm:nth-of-type(2){background:#fbf1da!important;box-shadow:inset 6px 0 0 #d5ab63!important}
+.trajetCadre{background:#eef6fc!important;box-shadow:inset 5px 0 0 #7fa9c9!important}
+.blocImpactCadre{background:#fbebe6!important;box-shadow:inset 5px 0 0 #ce9889!important}
+.selectionStructureTrajet select:has(option:checked:not([value=''])){background:#dcefe6!important;border-color:#70a98f!important;font-weight:700!important}
