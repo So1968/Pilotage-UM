@@ -121,3 +121,7 @@ L’outil permet maintenant l’export JSON, l’import JSON et l’export CSV. 
 ## Évolution — Objectifs signature
 
 Ajout d’un module replié par défaut permettant de sélectionner des objectifs types et de générer un texte court prêt à copier pour la réunion de signature. L’outil aide à formuler, il ne décide pas.
+
+## Référents métier intégrés
+
+Les référents médecin, neuropsychologue, psychomotricien, ergothérapeute et pair-aidant sont désormais gérés directement dans l’application. L’ancien correctif qui modifiait la page et le stockage du navigateur a été supprimé. Les anciennes données sont reprises automatiquement lors du premier chargement.
