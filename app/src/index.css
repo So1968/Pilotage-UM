@@ -28,6 +28,16 @@ button {
   cursor: pointer;
 }
 
+.alerteStockage {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 2px solid #a33a2f;
+  border-radius: 10px;
+  background: #fff0ed;
+  color: #70251e;
+  font-weight: 800;
+}
+
 .page {
   width: min(1180px, 100%);
   margin: 0 auto;
