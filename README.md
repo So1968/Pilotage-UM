@@ -125,3 +125,9 @@ Ajout d’un module replié par défaut permettant de sélectionner des objectif
 ## Référents métier intégrés
 
 Les référents médecin, neuropsychologue, psychomotricien, ergothérapeute et pair-aidant sont désormais gérés directement dans l’application. L’ancien correctif qui modifiait la page et le stockage du navigateur a été supprimé. Les anciennes données sont reprises automatiquement lors du premier chargement.
+
+## Installation et usage hors ligne
+
+Pilotage UM peut être ajouté à l’écran d’accueil du téléphone. Après une première ouverture en ligne, l’interface reste accessible hors ligne. Les calculs d’itinéraire nécessitent toutefois une connexion, car ils utilisent Nominatim et OSRM.
+
+Les exports JSON et CSV portent maintenant la date et l’heure. Une alerte visible prévient l’utilisatrice si la sauvegarde locale du navigateur échoue.
