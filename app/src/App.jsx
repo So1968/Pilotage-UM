@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./index.css";
 import { calculerIndicateursBilan } from "./indicateurs.js";
+import { fusionnerAnciensReferents, referentsMetier } from "./referents.js";
 
 const STORAGE_KEY = "reperes-um-2-cadre-v3-charge-attribution";
 const EQUIPE_STORAGE_KEY = "reperes-um-2-cadre-equipe-v1";
 const REFERENTS_STORAGE_KEY = "pilotage-um-referents-metiers-v1";
-const BACKUP_VERSION = 2;
+const BACKUP_VERSION = 3;
 
 const equipeInitiale = [
   { code: "IDE-01", metier: "IDE", presence: "présente", typeAbsence: "", dateDebutAbsence: "", dateFinAbsence: "", disponibilitePct: "100", retourConfirme: false, commentaireAbsence: "" },
@@ -16,10 +17,10 @@ const equipeInitiale = [
   { code: "EDU-03", metier: "EDUC", presence: "présente", typeAbsence: "", dateDebutAbsence: "", dateFinAbsence: "", disponibilitePct: "100", retourConfirme: false, commentaireAbsence: "" },
   { code: "NEURO-01", metier: "NEUROPSY", presence: "présente", typeAbsence: "", dateDebutAbsence: "", dateFinAbsence: "", disponibilitePct: "100", retourConfirme: false, commentaireAbsence: "" },
   { code: "NEURO-02", metier: "NEUROPSY", presence: "présente", typeAbsence: "", dateDebutAbsence: "", dateFinAbsence: "", disponibilitePct: "100", retourConfirme: false, commentaireAbsence: "" },
-  { code: "PSYMO-01", metier: "AUTRE", presence: "présente", typeAbsence: "", dateDebutAbsence: "", dateFinAbsence: "", disponibilitePct: "100", retourConfirme: false, commentaireAbsence: "" },
+  { code: "PSYMO-01", metier: "PSYCHOMOT", presence: "présente", typeAbsence: "", dateDebutAbsence: "", dateFinAbsence: "", disponibilitePct: "100", retourConfirme: false, commentaireAbsence: "" },
 ];
 
-const metiers = ["IDE", "EDUC", "NEUROPSY", "AUTRE"];
+const metiers = ["MEDECIN", "IDE", "EDUC", "NEUROPSY", "PSYCHOMOT", "ERGO", "PAIR-AIDANT", "AUTRE"];
 
 function normaliserEquipe(equipeSauvee) {
   if (!Array.isArray(equipeSauvee)) return equipeInitiale;
@@ -111,6 +112,11 @@ const formInitial = {
   codeSuffixe: "",
   referentCode: "",
   binomeCode: "",
+  medecinReferentCode: "",
+  neuropsyReferentCode: "",
+  psychomotricienReferentCode: "",
+  ergotherapeuteReferentCode: "",
+  pairAidantReferentCode: "",
   statut: "Demande reçue",
   modalite: "Non défini",
 
@@ -547,7 +553,13 @@ export default function App() {
   const [situations, setSituations] = useState(() => {
     try {
       const sauvegarde = localStorage.getItem(STORAGE_KEY);
-      return sauvegarde ? JSON.parse(sauvegarde) : [];
+      let anciensReferents = {};
+      try {
+        anciensReferents = JSON.parse(localStorage.getItem(REFERENTS_STORAGE_KEY) || "{}");
+      } catch {
+        anciensReferents = {};
+      }
+      return sauvegarde ? fusionnerAnciensReferents(JSON.parse(sauvegarde), anciensReferents) : [];
     } catch {
       return [];
     }
@@ -994,7 +1006,11 @@ export default function App() {
 
   function retirerMembreEquipe(code) {
     const situationsLiees = situations.filter(
-      (s) => s.referentCode === code || s.binomeCode === code || s.relaisCode === code
+      (s) =>
+        s.referentCode === code ||
+        s.binomeCode === code ||
+        s.relaisCode === code ||
+        referentsMetier.some(({ key }) => s[key] === code)
     );
 
     const message =
@@ -1056,6 +1072,11 @@ export default function App() {
       code,
       referentCode: form.referentCode,
       binomeCode: form.binomeCode,
+      medecinReferentCode: form.medecinReferentCode,
+      neuropsyReferentCode: form.neuropsyReferentCode,
+      psychomotricienReferentCode: form.psychomotricienReferentCode,
+      ergotherapeuteReferentCode: form.ergotherapeuteReferentCode,
+      pairAidantReferentCode: form.pairAidantReferentCode,
       metierReferent: getPro(equipe, form.referentCode)?.metier || "AUTRE",
       statut: statutCalcule,
       modalite: form.modalite,
@@ -1110,12 +1131,12 @@ export default function App() {
   }
 
   function exporterJson() {
-    let referentsMetiers;
-    try {
-      referentsMetiers = JSON.parse(localStorage.getItem(REFERENTS_STORAGE_KEY) || "{}");
-    } catch {
-      referentsMetiers = {};
-    }
+    const referentsMetiers = Object.fromEntries(
+      situations.map((situation) => [
+        situation.code,
+        Object.fromEntries(referentsMetier.map(({ key }) => [key, situation[key] || ""])),
+      ])
+    );
 
     const contenu = JSON.stringify(
       {
@@ -1161,13 +1182,10 @@ export default function App() {
 
         if (!confirmation) return;
 
-        setSituations(donnees.situations);
+        setSituations(fusionnerAnciensReferents(donnees.situations, donnees.referentsMetiers));
         setEquipe(normaliserEquipe(donnees.equipe));
         if (Array.isArray(donnees.structuresTrajet)) {
           setStructuresTrajet(normaliserStructuresTrajet(donnees.structuresTrajet));
-        }
-        if (donnees.referentsMetiers) {
-          localStorage.setItem(REFERENTS_STORAGE_KEY, JSON.stringify(donnees.referentsMetiers));
         }
         setEditingId(null);
         setForm(formInitial);
@@ -1187,6 +1205,11 @@ export default function App() {
       "code",
       "referente_codee",
       "binome_code",
+      "medecin_referent_code",
+      "neuropsy_referent_code",
+      "psychomotricien_referent_code",
+      "ergotherapeute_referent_code",
+      "pair_aidant_referent_code",
       "metier_referent",
       "statut",
       "etat_reel",
@@ -1233,6 +1256,11 @@ export default function App() {
         s.code,
         s.referentCode,
         s.binomeCode,
+        s.medecinReferentCode,
+        s.neuropsyReferentCode,
+        s.psychomotricienReferentCode,
+        s.ergotherapeuteReferentCode,
+        s.pairAidantReferentCode,
         s.metierReferent,
         s.statut,
         estEffective(s) ? "effective" : estPreparatoire(s) ? "preparatoire" : estAnalyseNonRetenue(s) ? "analyse_non_retenue" : "cloturee",
@@ -1429,6 +1457,11 @@ export default function App() {
 
                   <div className="detailsSituation">
                     <div className="metaSituation">
+                      {referentsMetier
+                        .filter(({ key }) => situation[key])
+                        .map(({ key, label }) => <span key={key}>{label} : {situation[key]}</span>)}
+                    </div>
+                    <div className="metaSituation">
                       <span>{lectureScore(score)}</span>
                       {situation.alerte === "rouge" && <span className={badgeClasse("retard")}>Alerte rouge</span>}
                       {situation.relaisCode && <span className={badgeClasse("alerte")}>Relais</span>}
@@ -1605,7 +1638,7 @@ export default function App() {
             </label>
 
             <label className="champ">
-              <span>Référente codée</span>
+              <span>Référente coordinatrice</span>
               <select value={form.referentCode} onChange={(e) => modifierForm("referentCode", e.target.value)}>
                 <option value="">Sélectionner</option>
                 {equipe.map((pro) => (
@@ -1617,7 +1650,7 @@ export default function App() {
             </label>
 
             <label className="champ">
-              <span>Binôme codé</span>
+              <span>Éducateur référent</span>
               <select value={form.binomeCode} onChange={(e) => modifierForm("binomeCode", e.target.value)}>
                 <option value="">Aucun / à définir</option>
                 {equipe.map((pro) => (
@@ -1627,6 +1660,26 @@ export default function App() {
                 ))}
               </select>
             </label>
+
+            <details className="blocParcoursSaisie">
+              <summary><strong>Autres référents métier</strong></summary>
+              <div className="grilleParcoursSaisie">
+                {referentsMetier.map(({ key, label, metiers: metiersAttendus }) => {
+                  const professionnels = equipe.filter((pro) => metiersAttendus.includes(pro.metier));
+                  return (
+                    <label className="champ" key={key}>
+                      <span>{label}</span>
+                      <select value={form[key] || ""} onChange={(e) => modifierForm(key, e.target.value)}>
+                        <option value="">Aucun / à définir</option>
+                        {professionnels.map((pro) => (
+                          <option key={pro.code} value={pro.code}>{pro.code}</option>
+                        ))}
+                      </select>
+                    </label>
+                  );
+                })}
+              </div>
+            </details>
 
             <label className="champ">
               <span>Statut cadre</span>
