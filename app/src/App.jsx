@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./index.css";
+import { calculerIndicateursBilan } from "./indicateurs.js";
 
 const STORAGE_KEY = "reperes-um-2-cadre-v3-charge-attribution";
 const EQUIPE_STORAGE_KEY = "reperes-um-2-cadre-equipe-v1";
@@ -651,49 +652,7 @@ export default function App() {
   }, [situations, equipe, situationsASeecuriser]);
 
   const indicateursBilan = useMemo(() => {
-    const joursValides = (liste) =>
-      liste.map((valeur) => Number(valeur)).filter((nombre) => Number.isFinite(nombre) && nombre >= 0);
-
-    const moyenne = (liste) => {
-      if (liste.length === 0) return "—";
-      return (liste.reduce((total, nombre) => total + nombre, 0) / liste.length).toFixed(1);
-    };
-
-    const delaisTotaux = joursValides(situations.map((s) => joursEntre(s.dateSollicitation, s.dateSignature)));
-    const delaisUM = joursValides(
-      situations.map((s) => {
-        const delaiTotal = joursEntre(s.dateSollicitation, s.dateSignature);
-        if (delaiTotal === "") return "";
-        const delaiSuspendu = joursEntre(s.dateDemandeComplementESMS, s.dateRetourESMS);
-        return Math.max(0, Number(delaiTotal) - Number(delaiSuspendu || 0));
-      })
-    );
-
-    const dureesParcours = joursValides(
-      situations.map((s) => joursEntre(s.dateSignature, s.dateFinReelle || parcours(s).finTheorique))
-    );
-
-    const vadTotal = situations.reduce((total, s) => total + Number(s.vadParSemaine || 0), 0);
-    const kmMoyens = joursValides(situations.map((s) => s.trajetKm));
-    const minutesMoyennes = joursValides(situations.map((s) => s.trajetMinutes));
-
-    return {
-      total: situations.length,
-      effectives: situations.filter((s) => estEffective(s) && !estCloturee(s)).length,
-      preparatoires: situations.filter(estPreparatoire).length,
-      cloturees: situations.filter(estCloturee).length,
-      nonRetenues: situations.filter(estAnalyseNonRetenue).length,
-      prolongations: situations.filter((s) => s.prolongation || s.statut === "Prolongation à arbitrer").length,
-      delaiTotalMoyen: moyenne(delaisTotaux),
-      delaiUMMoyen: moyenne(delaisUM),
-      dureeMoyenne: moyenne(dureesParcours),
-      vadTotal,
-      kmMoyens: moyenne(kmMoyens),
-      minutesMoyennes: moyenne(minutesMoyennes),
-      modaliteVad: situations.filter((s) => s.modalite === "VAD").length,
-      modaliteStructure: situations.filter((s) => s.modalite === "Structure").length,
-      modaliteMixte: situations.filter((s) => s.modalite === "Mixte").length,
-    };
+    return calculerIndicateursBilan(situations);
   }, [situations]);
 
   const chargeProfessionnels = useMemo(() => {
