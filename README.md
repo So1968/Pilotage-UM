@@ -107,13 +107,15 @@ La version actuelle utilise une palette adoucie écru / sauge / prune, moins lum
 
 - La saisie d'une nouvelle situation est repliée par défaut.
 - La charge équipe affiche d'abord un résumé, puis les détails à la demande.
-- Le module trajet ne stocke pas d'adresse : uniquement km et minutes estimées depuis l'hôpital.
+- Le module trajet peut conserver localement dans le navigateur les structures enregistrées et leurs adresses.
+- Lors d'un calcul de trajet, les adresses sont transmises aux services externes Nominatim et OSRM après confirmation de l'utilisatrice.
+- Les fiches situations ne conservent que les kilomètres et minutes estimés.
 - La palette visuelle a été adoucie : sable, sauge, ardoise, ocre doux.
 
 
 ## Sauvegarde / restauration
 
-L’outil permet maintenant l’export JSON, l’import JSON et l’export CSV. Les exports réels ne doivent pas être déposés dans Git.
+L’outil permet maintenant l’export JSON, l’import JSON et l’export CSV. La sauvegarde JSON versionnée comprend les situations, l’équipe, les structures de trajet et les référents métier. Les exports réels ne doivent pas être déposés dans Git.
 
 
 ## Évolution — Objectifs signature
