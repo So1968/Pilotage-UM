@@ -3,6 +3,8 @@ import "./index.css";
 
 const STORAGE_KEY = "reperes-um-2-cadre-v3-charge-attribution";
 const EQUIPE_STORAGE_KEY = "reperes-um-2-cadre-equipe-v1";
+const REFERENTS_STORAGE_KEY = "pilotage-um-referents-metiers-v1";
+const BACKUP_VERSION = 2;
 
 const equipeInitiale = [
   { code: "IDE-01", metier: "IDE", presence: "présente", typeAbsence: "", dateDebutAbsence: "", dateFinAbsence: "", disponibilitePct: "100", retourConfirme: false, commentaireAbsence: "" },
@@ -104,22 +106,6 @@ const coordinations = ["simple", "régulier", "complexe", "très complexe"];
 const alertes = ["aucune", "bleue", "orange", "rouge"];
 const intensitesRelais = ["aucun", "vigilance", "actif", "complet temporaire"];
 
-const objectifsSignature = [
-  { id: "finalite", categorie: "Finalité", texte: "Clarifier la finalité de l’accompagnement UM avec l’ESMS et les professionnels impliqués." },
-  { id: "comportements-cibles", categorie: "Comportements ciblés", texte: "Identifier les situations qui nécessitent une observation partagée et des réponses harmonisées." },
-  { id: "evaluation", categorie: "Évaluation", texte: "Préciser les éléments à observer et les indicateurs simples d’évolution pendant le parcours." },
-  { id: "soin", categorie: "Soin / coordination", texte: "Faciliter la coordination entre les professionnels concernés sans se substituer aux suivis existants." },
-  { id: "orientation", categorie: "Orientation", texte: "Repérer les besoins d’orientation ou d’ajustement à discuter avec les partenaires concernés." },
-  { id: "communication", categorie: "Communication", texte: "Soutenir des modalités de communication plus lisibles, partagées et adaptées au quotidien." },
-  { id: "emotions", categorie: "Émotions", texte: "Aider l’équipe à repérer les signaux de tension et les stratégies d’apaisement utiles." },
-  { id: "habiletes-sociales", categorie: "Habiletés sociales", texte: "Observer les interactions et soutenir les ajustements favorisant la participation." },
-  { id: "vie-quotidienne", categorie: "Vie quotidienne", texte: "Repérer les aménagements utiles dans les temps de vie quotidienne." },
-  { id: "journee-type", categorie: "Journée type", texte: "Analyser l’organisation de la journée type et les moments sensibles à anticiper." },
-  { id: "harmonisation", categorie: "Harmonisation des pratiques", texte: "Favoriser une réponse d’équipe cohérente, partagée et sécurisante." },
-  { id: "outils", categorie: "Outils à réactualiser", texte: "Identifier les outils existants à actualiser, simplifier ou réexpliquer à l’équipe." },
-];
-
-
 const formInitial = {
   codeSuffixe: "",
   referentCode: "",
@@ -166,7 +152,11 @@ function dateLocale(date) {
 }
 
 function aujourdHuiISO() {
-  return new Date().toISOString().slice(0, 10);
+  const maintenant = new Date();
+  const annee = maintenant.getFullYear();
+  const mois = String(maintenant.getMonth() + 1).padStart(2, "0");
+  const jour = String(maintenant.getDate()).padStart(2, "0");
+  return `${annee}-${mois}-${jour}`;
 }
 
 function ajouterJours(date, jours) {
@@ -578,9 +568,6 @@ export default function App() {
   const [metierAttribution, setMetierAttribution] = useState("IDE");
   const [dateNouvelleAttribution, setDateNouvelleAttribution] = useState("");
   const [nouveauMembre, setNouveauMembre] = useState({ code: "", metier: "IDE" });
-  const [objectifSituationCode, setObjectifSituationCode] = useState("");
-  const [objectifsSelectionnes, setObjectifsSelectionnes] = useState([]);
-  const [commentaireObjectifs, setCommentaireObjectifs] = useState("");
   const [trajetTemp, setTrajetTemp] = useState({
     depart: VINATIER_ADRESSE_TRAJET,
     destination: "",
@@ -672,18 +659,18 @@ export default function App() {
       return (liste.reduce((total, nombre) => total + nombre, 0) / liste.length).toFixed(1);
     };
 
-    const delaisTotaux = joursValides(
-      situations.map((s) => joursEntre(s.dateSollicitation, s.dateSignature))
+    const delaisTotaux = joursValides(situations.map((s) => joursEntre(s.dateSollicitation, s.dateSignature)));
+    const delaisUM = joursValides(
+      situations.map((s) => {
+        const delaiTotal = joursEntre(s.dateSollicitation, s.dateSignature);
+        if (delaiTotal === "") return "";
+        const delaiSuspendu = joursEntre(s.dateDemandeComplementESMS, s.dateRetourESMS);
+        return Math.max(0, Number(delaiTotal) - Number(delaiSuspendu || 0));
+      })
     );
-
-    const delaisSuspendus = joursValides(
-      situations.map((s) => joursEntre(s.dateDemandeComplementESMS, s.dateRetourESMS))
-    );
-
-    const delaisUM = delaisTotaux.map((delai, index) => Math.max(0, delai - Number(delaisSuspendus[index] || 0)));
 
     const dureesParcours = joursValides(
-      situations.map((s) => joursEntre(s.dateSignature, s.dateFinReelle || s.dateFinTheorique))
+      situations.map((s) => joursEntre(s.dateSignature, s.dateFinReelle || parcours(s).finTheorique))
     );
 
     const vadTotal = situations.reduce((total, s) => total + Number(s.vadParSemaine || 0), 0);
@@ -704,8 +691,8 @@ export default function App() {
       kmMoyens: moyenne(kmMoyens),
       minutesMoyennes: moyenne(minutesMoyennes),
       modaliteVad: situations.filter((s) => s.modalite === "VAD").length,
-      modaliteStructure: situations.filter((s) => s.modalite === "structure").length,
-      modaliteMixte: situations.filter((s) => s.modalite === "mixte").length,
+      modaliteStructure: situations.filter((s) => s.modalite === "Structure").length,
+      modaliteMixte: situations.filter((s) => s.modalite === "Mixte").length,
     };
   }, [situations]);
 
@@ -792,52 +779,6 @@ export default function App() {
         "Professionnelle proposée pour rééquilibrage. Validation cadre par Michèle nécessaire.",
     };
   }, [chargeProfessionnels, metierAttribution]);
-
-  const objectifsParCategorie = useMemo(() => {
-    return objectifsSignature.reduce((groupes, objectif) => {
-      if (!groupes[objectif.categorie]) groupes[objectif.categorie] = [];
-      groupes[objectif.categorie].push(objectif);
-      return groupes;
-    }, {});
-  }, []);
-
-  const texteObjectifsSignature = useMemo(() => {
-    const selection = objectifsSignature.filter((objectif) => objectifsSelectionnes.includes(objectif.id));
-
-    if (selection.length === 0 && !commentaireObjectifs.trim()) {
-      return "Sélectionner un ou plusieurs objectifs pour générer une base de rédaction.";
-    }
-
-    const lignes = [
-      objectifSituationCode ? `Situation codée : ${objectifSituationCode}` : "Situation codée : à renseigner",
-      "",
-      "Objectifs proposés pour la signature :",
-      ...selection.map((objectif) => `- ${objectif.texte}`),
-    ];
-
-    if (commentaireObjectifs.trim()) {
-      lignes.push("", `Précision cadre courte : ${commentaireObjectifs.trim()}`);
-    }
-
-    lignes.push("", "Formulation à valider en réunion de signature. L’outil aide à formuler, il ne décide pas.");
-
-    return lignes.join("\\n");
-  }, [objectifSituationCode, objectifsSelectionnes, commentaireObjectifs]);
-
-  function basculerObjectif(id) {
-    setObjectifsSelectionnes((actuels) =>
-      actuels.includes(id) ? actuels.filter((item) => item !== id) : [...actuels, id]
-    );
-  }
-
-  async function copierObjectifsSignature() {
-    try {
-      await navigator.clipboard.writeText(texteObjectifsSignature);
-      window.alert("Objectifs copiés dans le presse-papiers.");
-    } catch {
-      window.alert("Copie impossible automatiquement. Le texte peut être sélectionné manuellement.");
-    }
-  }
 
   function modifierForm(champ, valeur) {
     setForm((actuel) => ({
@@ -957,6 +898,11 @@ export default function App() {
       }));
       return;
     }
+
+    const accord = window.confirm(
+      "Pour calculer le trajet, les adresses seront envoyées aux services publics Nominatim et OSRM. Continuer ?"
+    );
+    if (!accord) return;
 
     setTrajetTemp((actuel) => ({
       ...actuel,
@@ -1205,12 +1151,22 @@ export default function App() {
   }
 
   function exporterJson() {
+    let referentsMetiers;
+    try {
+      referentsMetiers = JSON.parse(localStorage.getItem(REFERENTS_STORAGE_KEY) || "{}");
+    } catch {
+      referentsMetiers = {};
+    }
+
     const contenu = JSON.stringify(
       {
         outil: "Pilotage UM",
+        versionSauvegarde: BACKUP_VERSION,
         exporteLe: new Date().toISOString(),
         situations,
         equipe,
+        structuresTrajet,
+        referentsMetiers,
       },
       null,
       2
@@ -1229,7 +1185,13 @@ export default function App() {
       try {
         const donnees = JSON.parse(String(lecteur.result || "{}"));
 
-        if (!Array.isArray(donnees.situations) || !Array.isArray(donnees.equipe)) {
+        if (
+          donnees.outil !== "Pilotage UM" ||
+          !Array.isArray(donnees.situations) ||
+          !Array.isArray(donnees.equipe) ||
+          (donnees.structuresTrajet !== undefined && !Array.isArray(donnees.structuresTrajet)) ||
+          (donnees.referentsMetiers !== undefined && (donnees.referentsMetiers === null || typeof donnees.referentsMetiers !== "object" || Array.isArray(donnees.referentsMetiers)))
+        ) {
           window.alert("Import impossible : le fichier JSON ne correspond pas à une sauvegarde Pilotage UM.");
           return;
         }
@@ -1242,6 +1204,12 @@ export default function App() {
 
         setSituations(donnees.situations);
         setEquipe(normaliserEquipe(donnees.equipe));
+        if (Array.isArray(donnees.structuresTrajet)) {
+          setStructuresTrajet(normaliserStructuresTrajet(donnees.structuresTrajet));
+        }
+        if (donnees.referentsMetiers) {
+          localStorage.setItem(REFERENTS_STORAGE_KEY, JSON.stringify(donnees.referentsMetiers));
+        }
         setEditingId(null);
         setForm(formInitial);
         window.alert("Import JSON terminé.");
@@ -2208,9 +2176,6 @@ export default function App() {
           <div className="grilleProfessionnelsFusionnes">
             {chargeProfessionnels.map((item) => {
               const scoreAjuste = Number.isFinite(item.scoreAjuste) ? item.scoreAjuste.toFixed(1) : "—";
-              const absenceTexte = item.presence === "présente"
-                ? `Présente · dispo ${item.disponibilitePct || "100"} %`
-                : `${item.typeAbsence || item.presence}${item.dateFinAbsence ? ` · vigilance ${dateLocale(item.dateFinAbsence)}` : ""}`;
               const margeTexte = item.proposable ? item.lecture : "Non proposée";
               const resumeCharge = `${item.effectives} effectives · ${item.preparatoires} préparatoires · ${item.sorties15} sorties J+15`;
 
