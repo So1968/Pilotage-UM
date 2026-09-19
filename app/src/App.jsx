@@ -2,6 +2,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import "./index.css";
 import { calculerIndicateursBilan } from "./indicateurs.js";
 import { fusionnerAnciensReferents, referentsMetier } from "./referents.js";
+import {
+  celluleCsvSecurisee,
+  ecrireStockageJson,
+  horodatageFichier,
+  lireStockageJson,
+  TAILLE_IMPORT_MAX,
+  validerSauvegarde,
+} from "./stockage.js";
 
 const STORAGE_KEY = "reperes-um-2-cadre-v3-charge-attribution";
 const EQUIPE_STORAGE_KEY = "reperes-um-2-cadre-equipe-v1";
@@ -491,12 +499,6 @@ function telechargerFichier(nom, contenu, type) {
   URL.revokeObjectURL(url);
 }
 
-function csvCell(value) {
-  const texte = String(value ?? "");
-  return `"${texte.replaceAll('"', '""')}"`;
-}
-
-
 async function geocoderAdresseTemporaire(adresse) {
   const propre = String(adresse || "").trim();
   if (!propre) throw new Error("Adresse temporaire manquante.");
@@ -552,14 +554,9 @@ async function calculerTrajetTemporaire(depart, destination) {
 export default function App() {
   const [situations, setSituations] = useState(() => {
     try {
-      const sauvegarde = localStorage.getItem(STORAGE_KEY);
-      let anciensReferents = {};
-      try {
-        anciensReferents = JSON.parse(localStorage.getItem(REFERENTS_STORAGE_KEY) || "{}");
-      } catch {
-        anciensReferents = {};
-      }
-      return sauvegarde ? fusionnerAnciensReferents(JSON.parse(sauvegarde), anciensReferents) : [];
+      const sauvegarde = lireStockageJson(STORAGE_KEY, []);
+      const anciensReferents = lireStockageJson(REFERENTS_STORAGE_KEY, {});
+      return fusionnerAnciensReferents(sauvegarde, anciensReferents);
     } catch {
       return [];
     }
@@ -567,9 +564,7 @@ export default function App() {
 
   const [equipe, setEquipe] = useState(() => {
     try {
-      const sauvegarde = localStorage.getItem(EQUIPE_STORAGE_KEY);
-      if (!sauvegarde) return equipeInitiale;
-      const equipeSauvee = JSON.parse(sauvegarde);
+      const equipeSauvee = lireStockageJson(EQUIPE_STORAGE_KEY, equipeInitiale);
       return normaliserEquipe(equipeSauvee);
     } catch {
       return equipeInitiale;
@@ -589,8 +584,7 @@ export default function App() {
   });
   const [structuresTrajet, setStructuresTrajet] = useState(() => {
     try {
-      const sauvegarde = localStorage.getItem(STRUCTURES_TRAJET_STORAGE_KEY);
-      return sauvegarde ? normaliserStructuresTrajet(JSON.parse(sauvegarde)) : structuresTrajetInitiales;
+      return normaliserStructuresTrajet(lireStockageJson(STRUCTURES_TRAJET_STORAGE_KEY, structuresTrajetInitiales));
     } catch {
       return structuresTrajetInitiales;
     }
@@ -605,17 +599,21 @@ export default function App() {
   });
   const [structureTrajetSelection, setStructureTrajetSelection] = useState("");
   const importJsonRef = useRef(null);
+  const [erreurStockage, setErreurStockage] = useState("");
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(situations));
+    const resultat = ecrireStockageJson(STORAGE_KEY, situations);
+    setErreurStockage(resultat.erreur);
   }, [situations]);
 
   useEffect(() => {
-    localStorage.setItem(EQUIPE_STORAGE_KEY, JSON.stringify(equipe));
+    const resultat = ecrireStockageJson(EQUIPE_STORAGE_KEY, equipe);
+    if (!resultat.ok) setErreurStockage(resultat.erreur);
   }, [equipe]);
 
   useEffect(() => {
-    localStorage.setItem(STRUCTURES_TRAJET_STORAGE_KEY, JSON.stringify(structuresTrajet));
+    const resultat = ecrireStockageJson(STRUCTURES_TRAJET_STORAGE_KEY, structuresTrajet);
+    if (!resultat.ok) setErreurStockage(resultat.erreur);
   }, [structuresTrajet]);
 
   const dateAttributionReference = dateNouvelleAttribution || aujourdHuiISO();
@@ -1152,12 +1150,18 @@ export default function App() {
       2
     );
 
-    telechargerFichier("pilotage-um-export.json", contenu, "application/json");
+    telechargerFichier(`pilotage-um_${horodatageFichier()}.json`, contenu, "application/json");
   }
 
   function importerJson(event) {
     const fichier = event.target.files?.[0];
     if (!fichier) return;
+
+    if (fichier.size > TAILLE_IMPORT_MAX) {
+      window.alert("Import impossible : le fichier dépasse 5 Mo.");
+      event.target.value = "";
+      return;
+    }
 
     const lecteur = new FileReader();
 
@@ -1165,13 +1169,7 @@ export default function App() {
       try {
         const donnees = JSON.parse(String(lecteur.result || "{}"));
 
-        if (
-          donnees.outil !== "Pilotage UM" ||
-          !Array.isArray(donnees.situations) ||
-          !Array.isArray(donnees.equipe) ||
-          (donnees.structuresTrajet !== undefined && !Array.isArray(donnees.structuresTrajet)) ||
-          (donnees.referentsMetiers !== undefined && (donnees.referentsMetiers === null || typeof donnees.referentsMetiers !== "object" || Array.isArray(donnees.referentsMetiers)))
-        ) {
+        if (!validerSauvegarde(donnees)) {
           window.alert("Import impossible : le fichier JSON ne correspond pas à une sauvegarde Pilotage UM.");
           return;
         }
@@ -1295,11 +1293,11 @@ export default function App() {
         calculerScoreSituation(s).toFixed(1),
         s.commentaire,
         s.historiqueCadre,
-      ].map(csvCell).join(";");
+      ].map(celluleCsvSecurisee).join(";");
     });
 
     telechargerFichier(
-      "pilotage-um-export.csv",
+      `pilotage-um_${horodatageFichier()}.csv`,
       [entetes.join(";"), ...lignes].join("\n"),
       "text/csv;charset=utf-8"
     );
@@ -1347,6 +1345,10 @@ export default function App() {
           </button>
         </div>
       </header>
+
+      {erreurStockage && (
+        <p className="alerteStockage" role="alert">{erreurStockage}</p>
+      )}
 
       <section className="bandeauSynthese bandeauSyntheseSix" aria-label="Synthèse cadre">
         <article className="carteSynthese">
